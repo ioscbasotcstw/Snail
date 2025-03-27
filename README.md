@@ -18,6 +18,14 @@ The main objective of this class is to help you:
 
 ### Getting Started
 
+ ### 0. Installing 
+Install and set up the tool with the following command. I highly recommend using Google Colab because it's much easier and more flexible.
+Don't forget to set up `huggingface-cli login`, because you will need to log in to HF when you push the dataset to HF. 
+   ```text
+   !git clone https://github.com/ioscbasotcstw/Snail.git
+   !cd Snail
+   !huggingface-cli login
+   ```
  ### 1. Initialize the Class
 Set up the class by providing all the necessary parameters. One key parameter is role, which tailors the context for more relevant system instructions via system_instruction_google_search.
    ```python
