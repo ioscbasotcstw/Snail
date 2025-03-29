@@ -1,5 +1,5 @@
 <div align="center">
-    <img src="snail_mascot.png" width="200px" height="200px">
+    <img src="img/snail_mascot.png" width="200px" height="200px">
 </div>
 
 

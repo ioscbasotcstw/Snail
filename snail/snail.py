@@ -2,7 +2,7 @@ import re
 import time
 import json
 from datetime import datetime
-from typing import List, Optional, Dict, Tuple
+from typing import List, Dict, Tuple
 from google import genai
 from google.genai.types import Tool, GenerateContentConfig, GoogleSearch
 from datasets import load_dataset
@@ -36,7 +36,7 @@ class Snail:
     def __init__(self,
                  google_api_key: str,
                  model_id: str,
-                 role: Optional[str],
+                 role: str,
                  user_query: str,
                  max_output_tokens: int = 2048) -> None:
         """
@@ -78,7 +78,7 @@ class Snail:
         Args:
             google_api_key (str): The API key for accessing Google's GenAI services.
             model_id (str): The identifier for the generative model to use.
-            role (Optional[str]): The expert role to define the context (e.g., 'political', 'technical') in system instruction for google search.
+            role (str): The expert role to define the context (e.g., 'political', 'technical') in system instruction for google search.
             user_query (str): The user's query to process.
             max_output_tokens (int): The maximum number of tokens in the generated output.
 
