@@ -26,7 +26,7 @@ size_categories:
 
 # Made with Snail
 
-[<img src="https://raw.githubusercontent.com/ioscbasotcstw/Snail/main/snail_mascot.png" width="200"/>](https://github.com/ioscbasotcstw/Snail)
+[<img src="https://raw.githubusercontent.com/ioscbasotcstw/Snail/main/img/snail_mascot.png" width="200"/>](https://github.com/ioscbasotcstw/Snail)
 """
 
 
