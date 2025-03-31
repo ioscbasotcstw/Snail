@@ -23,12 +23,14 @@ Install and set up the tool with the following command. I highly recommend using
 Don't forget to set up `huggingface-cli login`, because you will need to log in to HF when you push the dataset to HF. 
    ```text
    !git clone https://github.com/ioscbasotcstw/Snail.git
-   !cd Snail
+   !pip install -r '/content/Snail/requirements.txt'
    !huggingface-cli login
    ```
  ### 1. Initialize the Class
 Set up the class by providing all the necessary parameters. One key parameter is role, which tailors the context for more relevant system instructions via system_instruction_google_search.
    ```python
+   from Snail.snail.cot_dsgen import CoTDatasetGenerator
+    
    snail = CoTDatasetGenerator(google_api_key=google_api, model_id='gemini-2.0-flash-thinking-exp-01-21', user_query="List a 20 math problems from easiest to hard and numerate their", role="mathematician")
    result = snail.searching()
    ```
