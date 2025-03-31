@@ -337,4 +337,4 @@ class CoTDatasetGenerator(BaseDatasetGenerator):
             panel_content = f"Congratulations on creating a new dataset. [link={url}]Click here to view it[/link]"
             console.print(Panel(panel_content, title="Success", style="green"))
         except Exception as e:
-            logger.error(f"Error occurred while pushing dataset: {e}")
+            print(f"Error occurred while pushing dataset: {e}")
