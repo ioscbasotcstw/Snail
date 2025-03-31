@@ -1,3 +1,4 @@
 google-generativeai
 datasets
 huggingface_hub
+rich

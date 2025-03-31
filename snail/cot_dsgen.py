@@ -1,3 +1,12 @@
+import logging
+
+logging.basicConfig(
+    level = logging.DEBUG,
+    format = '%(asctime)s : %(name)s : %(levelname)s : %(message)s',
+    datefmt = "%m-%d-%Y %H:%M:%S",
+    force = True
+)
+
 import re
 import time
 import json
@@ -7,6 +16,17 @@ from google import genai
 from google.genai.types import Tool, GenerateContentConfig, GoogleSearch
 from datasets import load_dataset
 from huggingface_hub import create_repo, DatasetCard
+
+from rich.console import Console
+from rich.panel import Panel
+
+from snail.base import BaseDatasetGenerator
+
+
+logger = logging.getLogger('CoTDatasetGenerator')
+
+# Set up Rich console for pretty prints
+console = Console()
 
 DATASET_CARD = \
 """---
@@ -26,11 +46,11 @@ size_categories:
 
 # Made with Snail
 
-[<img src="https://raw.githubusercontent.com/ioscbasotcstw/Snail/main/snail_mascot.png" width="200"/>](https://github.com/ioscbasotcstw/Snail)
+[<img src="https://raw.githubusercontent.com/ioscbasotcstw/Snail/main/img/snail_mascot.png" width="200"/>](https://github.com/ioscbasotcstw/Snail)
 """
 
 
-class Snail:
+class CoTDatasetGenerator(BaseDatasetGenerator):
     """A class for generating CoT dataset using Google's GenAI API with search and Chain of Thought (CoT) capabilities."""
 
     def __init__(self,
@@ -40,15 +60,17 @@ class Snail:
                  user_query: str,
                  max_output_tokens: int = 2048) -> None:
         """
-        Initialise the Snail class with the necessary parameters to generate CoT ds.
+        Initialise the CoTDatasetGenerator class with the necessary parameters to generate CoT ds.
         Very important for the step where you will push your dataset to HF,
-        If you are using Colab, set up `!huggingface-cli login` and pass your token to HF.
+        If you are using Colab, set up `!huggingface-cli login` and pass your HF token.
         I recommend running this on Colab because it's easier and much more flexible.
 
-        Example of usage a tool:
-            >>> from snail import Snail
+        Example of usage a CoTDatasetGenerator:
+            >>> # !huggingface-cli login
 
-            >>> snail = Snail(google_api_key=google_api, model_id='gemini-2.0-flash-thinking-exp-01-21', user_query="List a 20 math problems from easiest to hard and numerate their", role="mathematician")
+            >>> from Snail.snail.cot_dsgen import CoTDatasetGenerator
+
+            >>> snail = CoTDatasetGenerator(google_api_key=google_api, model_id='gemini-2.0-flash-thinking-exp-01-21', user_query="List a 20 math problems from easiest to hard and numerate their", role="mathematician")
 
             >>> result = snail.searching()
 
@@ -57,22 +79,21 @@ class Snail:
             >>> # Modified these instructions at your task
 
             >>> snail.system_instruction_cot = f'''You are a {snail.role} expert skilled at explaining step by step mathematician problems, using a Chain of Thought (CoT) framework. Your response must include:
-            - A thought process inside <thought></thought> tags, where you analyze the problem.
-            - A final response inside <answer></answer> tags, solving the problem.
-            Ensure your reasoning is clear, concise.
-            '''
+            >>> - A thought process inside <thought></thought> tags, where you analyze the problem.
+            >>> - A final response inside <answer></answer> tags, solving the problem.
+            >>> Ensure your reasoning is clear, concise.
+            >>> '''
 
-            >>> output = snail.get_cot_result(instruction, 2)
+            >>> output = snail.get_result(instruction, 2)
 
             >>> ds = snail.create_ds(instruction, output)
 
             >>> snail.transform_alpaca_format(ds)
 
             >>> snail.push_to_hf(json_path="path to file", repo_id="HF username/Repo name")
-        
+
         Then you could use dataset as always:
             >>> ds = load_dataset("HF username/Repo name")
-
             >>> ds['train']
 
         Args:
@@ -94,21 +115,26 @@ class Snail:
 
         # Validate input parameters
         if self.google_api_key is None or self.google_api_key == "":
+            logger.error("API key is missing or empty")
             raise ValueError("API key is missing or empty")
 
         self.client = genai.Client(api_key=self.google_api_key)  # Initialize GenAI client
         self.google_search_tool = Tool(google_search=GoogleSearch())  # Set up Google Search tool
 
         if self.model_id is None or self.model_id == "":
+            logger.error("Model ID is missing or empty")
             raise ValueError("Model ID is missing or empty")
 
         if self.role is None or self.role == "":
+            logger.error("Role is missing or empty")
             raise ValueError("Role is missing or empty")
 
         if self.user_query is None or self.user_query == "":
+            logger.error("User query is missing or empty")
             raise ValueError("User query is missing or empty")
 
         if self.max_output_tokens is None or self.max_output_tokens <= 0:
+            logger.error("Max output tokens must be greater than zero")
             raise ValueError(f"Max output tokens must be greater than zero, got {self.max_output_tokens}")
 
         # Define system instruction for Google Search tool using the provided role
@@ -146,7 +172,8 @@ class Snail:
             )
             return response.text
         except Exception as e:
-            print(f"Error occurred while searching: {e}")
+            logger.error(f"Error occurred while searching: {e}")
+            return ""
 
     @staticmethod
     def extract_listings(listings: str) -> List[str]:
@@ -159,24 +186,38 @@ class Snail:
 
         Returns:
             List[str]: A list of strings, each being the text after a numbered marker.
+
+        Raises:
+            ValueError: If `listings` is empty or None.
         """
+        if not listings:
+            logger.error("Listings is missing or empty")
+            raise ValueError("Listings is missing or empty")
+
         # Use regex to find text following numbered markers and strip trailing whitespace
         quotes = [quote.rstrip() for quote in re.findall(r'\n\d+\.\s+(.*)', listings)]
         return quotes
 
-    def get_cot_result(self, datas: List[str], delay: int = 5) -> List[str]:
+    def get_result(self, data: List[str], delay: int = 5) -> List[str]:
         """
         Process a list of data entries using the Chain of Thought (CoT) framework and return results.
 
         Args:
-            datas (List[str]): List of data entries (e.g., statements or quotes) to analyze.
+            data (List[str]): List of data entries (e.g., statements or quotes) to analyze.
             delay (int): Time in seconds to wait between processing each entry to avoid rate limits.
 
         Returns:
             List[str]: List of generated text responses for each data entry.
+
+        Raises:
+            ValueError: If `data` is empty or None.
         """
+        if not data:
+            logger.error("Data is missing or empty")
+            raise ValueError("Data is missing or empty")
+
         results = []
-        for data in datas:
+        for d in data:
             try:
                 # Generate content for each data entry using CoT configuration
                 response = self.client.models.generate_content(
@@ -184,17 +225,22 @@ class Snail:
                     config=GenerateContentConfig(
                         system_instruction=self.system_instruction_cot
                     ),
-                    contents=data
+                    contents=d
                 )
                 if response:  # Ensure response is valid before appending
                     results.append(response.text)
 
-                # Print detailed output for debugging or logging
-                print(f"{'#'*140}\n\nData: {data}\n\nResponse: {response.text}\n\nUsage tokens: {response.usage_metadata}\n{'#'*140}")
+                # Print detailed output
+                panel_content = (
+                    f"[bold]Data:[/bold] {d}\n\n"
+                    f"[bold green]Response:[/bold green] {response.text}\n\n"
+                    f"[bold yellow]Usage tokens:[/bold yellow] {response.usage_metadata}"
+                )
+                console.print(Panel(panel_content, title="CoT Processing Output", expand=False))
                 time.sleep(delay)  # Pause to respect rate limits
             except Exception as e:
                 # Log errors with consistent f-string formatting
-                print(f"Error occurred while processing data '{data}': {e}")
+                logger.error(f"Error occurred while processing data '{data}': {e}")
         return results
 
     def create_ds(self, instruction: List[str], output: List[str]) -> Dict[str, str]:
@@ -212,6 +258,7 @@ class Snail:
             ValueError: If the instruction and output lists have different lengths.
         """
         if len(instruction) != len(output):
+            logger.error("Instruction and output must be the same length")
             raise ValueError("Instruction and output must be the same length")
 
         return dict(zip(instruction, output))
@@ -227,7 +274,14 @@ class Snail:
             Tuple[str, List[Dict]]:
             - The filename of the saved JSON file
             - The list of transformed data entries
+
+        Raises:
+            ValueError: If `dataset` is empty or None.
         """
+        if not dataset:
+            logger.error("Dataset is missing or empty")
+            raise ValueError("Dataset is missing or empty")
+
         # Transform the data
         transformed_data = []
         for instruction, output in dataset.items():
@@ -239,7 +293,7 @@ class Snail:
             transformed_data.append(transformed_pair)
 
         # Generate output filename with timestamp
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now().strftime("%d%m%Y_%H%M%S")
         output_file = f'transformed_qa_{timestamp}.json'
 
         # Write the transformed data
@@ -261,14 +315,16 @@ class Snail:
         """
 
         if not json_path:
+            logger.error("The JSON file path must be provided and cannot be empty.")
             raise ValueError("The JSON file path must be provided and cannot be empty.")
         if not repo_id:
+            logger.error("The repository ID must be provided and cannot be empty.")
             raise ValueError("The repository ID must be provided and cannot be empty.")
 
         try:
             url = create_repo(repo_id=repo_id, repo_type="dataset")
             username, _ = repo_id.split('/')
-            
+
             content = DATASET_CARD.format(
                 username = username,
             )
@@ -278,6 +334,7 @@ class Snail:
             dataset = load_dataset("json", data_files=json_path)
             dataset.push_to_hub(repo_id)
 
-            print(f"Congratulations on creating a new dataset {url}")
+            panel_content = f"Congratulations on creating a new dataset. [link={url}]Click here to view it[/link]"
+            console.print(Panel(panel_content, title="Success", style="green"))
         except Exception as e:
-            print(f"Error occurred while pushing dataset: {e}")
+            logger.error(f"Error occurred while pushing dataset: {e}")

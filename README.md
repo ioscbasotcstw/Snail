@@ -4,16 +4,16 @@
 
 
 # Snail
-### Generate CoT Dataset Using Gemini Model & Google Search Tool
+### Generate Synthetic Dataset Using Gemini Model & Google Search Tool
 
-This repository provides a powerful class designed to search for tasks, expressions, and similar entities that can be quantified, enabling you to generate a Chain-of-Thought (CoT) dataset with ease. By leveraging the Gemini model and the Google search tool, you can now seamlessly build datasets for advanced reasoning and problem-solving applications.
+This repository provides a powerful class designed to search for tasks, expressions, and similar entities that can be quantified, enabling you to generate a synth dataset with ease. By leveraging the Gemini model and the Google search tool, you can now seamlessly build datasets for advanced reasoning and problem-solving applications.
 
 ### Overview
 
 The main objective of this class is to help you:
 1. Search for specific tasks and expressions using Google search.
 2. Extract enumerated listings from the search results.
-3. Generate a comprehensive Chain-of-Thought dataset.
+3. Generate a comprehensive synth dataset.
 4. Create and push your dataset to Hugging Face in a streamlined manner.
 
 ### Getting Started
@@ -29,7 +29,7 @@ Don't forget to set up `huggingface-cli login`, because you will need to log in 
  ### 1. Initialize the Class
 Set up the class by providing all the necessary parameters. One key parameter is role, which tailors the context for more relevant system instructions via system_instruction_google_search.
    ```python
-   snail = Snail(google_api_key=google_api, model_id='gemini-2.0-flash-thinking-exp-01-21', user_query="List a 20 math problems from easiest to hard and numerate their", role="mathematician")
+   snail = CoTDatasetGenerator(google_api_key=google_api, model_id='gemini-2.0-flash-thinking-exp-01-21', user_query="List a 20 math problems from easiest to hard and numerate their", role="mathematician")
    result = snail.searching()
    ```
  ### 2. Extract Enumerations
@@ -49,7 +49,7 @@ Ensure your reasoning is clear, concise.
  ### 4. Generate CoT Results
 Leverage the configured instructions to produce CoT outputs. This step generates responses in the desired CoT format.
   ```python   
-  output = snail.get_cot_result(instruction, 2)
+  output = snail.get_result(instruction, 2)
   ```
  ### 5. Create and Push Your Dataset
 Finally, transform your outputs into a JSON-formatted dataset and push it to Hugging Face. 
