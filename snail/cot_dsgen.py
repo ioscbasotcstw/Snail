@@ -20,7 +20,7 @@ from huggingface_hub import create_repo, DatasetCard
 from rich.console import Console
 from rich.panel import Panel
 
-from snail.base import BaseDatasetGenerator
+from .base import BaseDatasetGenerator
 
 
 logger = logging.getLogger('CoTDatasetGenerator')
